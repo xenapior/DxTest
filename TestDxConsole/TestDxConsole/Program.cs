@@ -4,11 +4,11 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using SharpDX;
 using SharpDX.Direct3D;
 using SharpDX.DXGI;
 using SharpDX.Direct3D11;
+using SharpDX.Mathematics.Interop;
 using SharpDX.Windows;
 
 using con=System.Console;
@@ -29,7 +29,7 @@ namespace TestDxConsole
 			SwapChainDescription swcDesc = new SwapChainDescription
 			{
 				BufferCount = 1,
-				ModeDescription = new ModeDescription(fm.ClientSize.Width/2, fm.ClientSize.Height/2, new Rational(60, 1), Format.R8G8B8A8_UNorm),
+				ModeDescription = new ModeDescription(fm.ClientSize.Width, fm.ClientSize.Height, new Rational(60, 1), Format.R8G8B8A8_UNorm),
 				IsWindowed = true,
 				OutputHandle = fm.Handle,
 				SampleDescription = new SampleDescription(1, 0),
@@ -44,9 +44,18 @@ namespace TestDxConsole
 			factory.MakeWindowAssociation(fm.Handle,WindowAssociationFlags.IgnoreAll);
 
 			var backBuffer = Resource.FromSwapChain<Texture2D>(swapChain,0);
+			var targetView=new RenderTargetView(device,backBuffer);
 
+			RenderLoop.Run(fm, () =>
+			{
+				dc.ClearRenderTargetView(targetView,Color.AliceBlue);
+				swapChain.Present(0, PresentFlags.None);
+			});
 
+			con.WriteLine("Program end");
 			con.ReadKey();
+
+			targetView.Dispose();
 			backBuffer.Dispose();
 			dc.Flush(); 
 			dc.Dispose();
