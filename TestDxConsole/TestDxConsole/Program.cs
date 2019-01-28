@@ -28,7 +28,7 @@ namespace TestDxConsole
 			SwapChainDescription swcDesc = new SwapChainDescription
 			{
 				BufferCount = 1,
-				ModeDescription = new ModeDescription(fm.ClientRectangle.Width/2, fm.ClientRectangle.Height/2, new Rational(60, 1), Format.R8G8B8A8_UNorm),
+				ModeDescription = new ModeDescription(fm.ClientSize.Width/2, fm.ClientSize.Height/2, new Rational(60, 1), Format.R8G8B8A8_UNorm),
 				IsWindowed = true,
 				OutputHandle = fm.Handle,
 				SampleDescription = new SampleDescription(1, 0),
