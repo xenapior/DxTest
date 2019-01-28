@@ -13,6 +13,7 @@ using SharpDX.Windows;
 
 using con=System.Console;
 using Device = SharpDX.Direct3D11.Device;
+using Resource = SharpDX.Direct3D11.Resource;
 
 namespace TestDxConsole
 {
@@ -21,14 +22,14 @@ namespace TestDxConsole
 		[STAThread]
 		static void Main(string[] args)
 		{
-			con.WriteLine(GetAdapter0String());
+			PrintAdapterInfo();
 
 			RenderForm fm=new RenderForm();
 			
 			SwapChainDescription swcDesc = new SwapChainDescription
 			{
 				BufferCount = 1,
-				ModeDescription = new ModeDescription(fm.ClientRectangle.Width/2, fm.ClientRectangle.Height/2, new Rational(60, 1), Format.R8G8B8A8_UNorm),
+				ModeDescription = new ModeDescription(fm.ClientSize.Width/2, fm.ClientSize.Height/2, new Rational(60, 1), Format.R8G8B8A8_UNorm),
 				IsWindowed = true,
 				OutputHandle = fm.Handle,
 				SampleDescription = new SampleDescription(1, 0),
@@ -39,26 +40,42 @@ namespace TestDxConsole
 			SwapChain swapChain;
 			Device.CreateWithSwapChain(DriverType.Hardware,DeviceCreationFlags.None,swcDesc,out device,out swapChain);
 			var dc = device.ImmediateContext;
-			var fab = swapChain.GetParent<Factory>();
-			fab.MakeWindowAssociation(fm.Handle,WindowAssociationFlags.IgnoreAll);
+			var factory = swapChain.GetParent<Factory>();
+			factory.MakeWindowAssociation(fm.Handle,WindowAssociationFlags.IgnoreAll);
+
+			var backBuffer = Resource.FromSwapChain<Texture2D>(swapChain,0);
 
 
 			con.ReadKey();
+			backBuffer.Dispose();
 			dc.Flush(); 
 			dc.Dispose();
 			swapChain.Dispose();
 			device.Dispose();
+			factory.Dispose();
 			fm.Dispose();
 		}
 
-		private static string GetAdapter0String()
+		private static void PrintAdapterInfo()
 		{
 			Factory1 fab = new Factory1();
-			Adapter1 adapter = fab.GetAdapter1(0);
-			string description = adapter.Description1.Description;
-			adapter.Dispose();
+			Adapter1[] nAdapters = fab.Adapters1;
+			for (int i = 0; i < nAdapters.Length; i++)
+			{
+				Adapter1 adapter = fab.Adapters1[i];
+				con.WriteLine(adapter.Description1.Description);
+				con.WriteLine(adapter.Description1.DedicatedVideoMemory/1024/1024+"MB video memory.");
+				Output[] displays = adapter.Outputs;
+				foreach (var display in displays)
+				{
+					con.WriteLine(display.Description.DeviceName);
+					display.Dispose();
+				}
+				con.WriteLine($"Adapter {Device.GetSupportedFeatureLevel(adapter).ToString()}");
+				adapter.Dispose();
+			}
+
 			fab.Dispose();
-			return description;
 		}
 	}
 }
