@@ -1,13 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Windows.Forms;
 using SharpDX;
-using SharpDX.Direct3D;
 using SharpDX.DXGI;
-using SharpDX.Direct3D11;
 using SharpDX.Windows;
-
-using con=System.Console;
-using Device = SharpDX.Direct3D11.Device;
-using Resource = SharpDX.Direct3D11.Resource;
 
 namespace TestDxConsole
 {
@@ -18,88 +14,40 @@ namespace TestDxConsole
 		[STAThread]
 		static void Main(string[] args)
 		{
-			PrintAdapterInfo();
+//			PrintAdapterInfo();
 
 			RenderForm fm=new RenderForm();
 			AutoCollector.Collect(fm);
-
-			Device device;
-			DeviceContext dc;
-			RenderTargetView targetView;
-			SwapChain swapChain = InitWindow(fm, out device, out dc, out targetView);
-
-			RenderLoop.Run(fm, () =>
-			{
-				dc.ClearRenderTargetView(targetView,Color.Black);
-				RenderScene(dc);
-				swapChain.Present(0, PresentFlags.None);
-			});
-
-			dc.Flush(); 
-			con.WriteLine("Program end");
-			con.ReadKey();
+			RenderformInput formInput=new RenderformInput(fm);	//TODO: refact to factory creation
+			AutoCollector.Collect(formInput);
+			LogicBasic logicModule=new LogicBasic(formInput);
+			RenderContext mainRC = new RenderContext(fm, logicModule);
+			AutoCollector.Collect(mainRC);
+			
+			RenderLoop.Run(fm,mainRC.RenderProc);
 
 			AutoCollector.DisposeAndClear();
 		}
 
-		private static void RenderScene(DeviceContext dc)
-		{
-			//todo: add rendering code
-			return;
-		}
-
-		private static SwapChain InitWindow(RenderForm fm, out Device device, out DeviceContext dc,
-			out RenderTargetView targetView)
-		{
-			SwapChainDescription swcDesc = new SwapChainDescription
-			{
-				BufferCount = 1,
-				ModeDescription = new ModeDescription(fm.ClientSize.Width, fm.ClientSize.Height, new Rational(60, 1),
-					Format.R8G8B8A8_UNorm),
-				IsWindowed = true,
-				OutputHandle = fm.Handle,
-				SampleDescription = new SampleDescription(1, 0),
-				SwapEffect = SwapEffect.Discard,
-				Usage = Usage.RenderTargetOutput
-			};
-			SwapChain swapChain;
-			Device.CreateWithSwapChain(DriverType.Hardware, DeviceCreationFlags.None, swcDesc, out device, out swapChain);
-			AutoCollector.Collect(device);
-			AutoCollector.Collect(swapChain);
-
-			dc = device.ImmediateContext;
-			AutoCollector.Collect(dc);
-			var factory = swapChain.GetParent<Factory>();
-			AutoCollector.Collect(factory);
-			factory.MakeWindowAssociation(fm.Handle, WindowAssociationFlags.IgnoreAll);
-
-			var backBuffer = swapChain.GetBackBuffer<Texture2D>(0);
-			AutoCollector.Collect(backBuffer);
-			targetView = new RenderTargetView(device, backBuffer);
-			AutoCollector.Collect(targetView);
-			return swapChain;
-		}
-
 		public static void PrintAdapterInfo()
 		{
-			Factory1 fab = new Factory1();
-			Adapter1[] nAdapters = fab.Adapters1;
+			Factory1 factory1 = new Factory1();
+			Adapter1[] nAdapters = factory1.Adapters1;
 			for (int i = 0; i < nAdapters.Length; i++)
 			{
-				Adapter1 adapter = fab.Adapters1[i];
-				con.WriteLine(adapter.Description1.Description);
-				con.WriteLine(adapter.Description1.DedicatedVideoMemory/1024/1024+"MB video memory.");
-				Output[] displays = adapter.Outputs;
-				foreach (var display in displays)
-				{
-					con.WriteLine(display.Description.DeviceName);
-					display.Dispose();
-				}
-				con.WriteLine($"Adapter {Device.GetSupportedFeatureLevel(adapter).ToString()}");
+				Adapter1 adapter = factory1.Adapters1[i];
+				Debug.WriteLine(adapter.Description1.Description);
+				Debug.WriteLine(adapter.Description1.DedicatedVideoMemory/1024/1024+"MB video memory.");
+//				Output[] displays = adapter.Outputs;
+//				foreach (var display in displays)
+//				{
+//					Debug.WriteLine(display.Description.DeviceName);
+//					display.Dispose();
+//				}
+				Debug.WriteLine($"Adapter {SharpDX.Direct3D11.Device.GetSupportedFeatureLevel(adapter).ToString()}");
 				adapter.Dispose();
 			}
-
-			fab.Dispose();
+			factory1.Dispose();
 		}
 	}
 }
